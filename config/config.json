@@ -1,0 +1,14 @@
+{
+  "port": 7856,
+  "logLevel": "debug",
+  "database": {
+    "name": "crud_web_service",
+    "host": "localhost",
+    "port": 18633,
+    "user": "crud_web_service",
+    "password": "U9jBFRq92G4QERsD",
+    "enableSSL": false,
+    "endpoint": "api",
+    "schema": "test"
+  }
+}

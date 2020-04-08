@@ -1,0 +1,11 @@
+version: "3.0"
+
+services:
+  db:
+    image: postgres:11.2
+    environment:
+      POSTGRES_USER: "crud_web_service"
+      POSTGRES_PASSWORD: "U9jBFRq92G4QERsD"
+      POSTGRES_DB: "crud_web_service"
+    ports:
+      - "18633:5432"

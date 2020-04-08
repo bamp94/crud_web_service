@@ -1,0 +1,47 @@
+definitions:
+  controller.HealthCheck:
+    properties:
+      result:
+        properties:
+          DB:
+            example: ok
+            type: string
+        type: object
+    type: object
+info:
+  contact: {}
+  description: Документация для http сервера приложения
+  license: {}
+  title: CRUD Web Service
+paths:
+  /{endpoint}/v{version}/healthcheck:
+    get:
+      consumes:
+      - application/json
+      description: Запускает процесс проверки всех зависимостей, необходимых для корректной
+        работы сервера
+      operationId: get-string-by-int
+      parameters:
+      - default: api
+        description: Идентификатор слушателя
+        in: path
+        name: endpoint
+        required: true
+        type: string
+      - default: 1
+        description: Версия API
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.HealthCheck'
+      summary: Проверка сервера
+      tags:
+      - Служебные
+swagger: "2.0"
