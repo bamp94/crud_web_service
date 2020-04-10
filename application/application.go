@@ -23,3 +23,8 @@ func New(m model.Model, c config.Main) Application {
 func (a *Application) PingDatabase() error {
 	return a.model.Ping()
 }
+
+// GetDBResult get from db result of query
+func (a *Application) GetDBResult(params model.QueryParameters) (interface{}, error) {
+	return a.model.ExecQueryByParams(params)
+}
