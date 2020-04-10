@@ -9,7 +9,6 @@ import (
 	"crud_web_service/application"
 	"crud_web_service/config"
 	"crud_web_service/controller"
-	"crud_web_service/docs"
 	"crud_web_service/model"
 
 	"github.com/sirupsen/logrus"
@@ -20,11 +19,9 @@ import (
 // @description Документация для http сервера приложения
 func main() {
 	appCli := cli.NewApp()
-	appCli.Version = controller.Branch
 	if appCli.Version == "" {
 		appCli.Version = "version not specified"
 	}
-	docs.SwaggerInfo.Version = appCli.Version
 
 	appCli.Flags = []cli.Flag{
 		cli.StringFlag{

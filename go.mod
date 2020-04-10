@@ -26,7 +26,7 @@ require (
 	github.com/swaggo/files v0.0.0-20190704085106-630677cd5c14
 	github.com/swaggo/gin-swagger v1.2.0
 	github.com/swaggo/swag v1.6.5
-	github.com/urfave/cli v1.22.4 // indirect
+	github.com/urfave/cli v1.22.4
 	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71 // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
