@@ -2,20 +2,19 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
-	"github.com/labstack/echo/v4/middleware"
 
 	"crud_web_service/application"
 	"crud_web_service/config"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
-	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
-// this variables should be specified by '--ldflags' on the building stage
-var Branch, link, author, date, summary string
+const ok = "ok"
+
+var errWrongHTTPMethod = errors.New("Неверный http метод")
 
 // Controller is presentation tier of 3-layer architecture
 type Controller struct {
@@ -52,9 +51,11 @@ func (c Controller) ServeHTTP(ctx context.Context, port int) {
 }
 
 func (c Controller) initRoutes() {
-	// cors used for success answer on OPTION request from swagger
-	c.router.Use(middleware.CORS())
+	firstVersionAPI := c.router.Group("/" + c.config.DB.Endpoint + "/v1/*")
 
-	c.router.GET("/"+c.config.DB.Endpoint+"/swagger/*any", echoSwagger.WrapHandler)
-	c.router.GET("/"+c.config.DB.Endpoint+"v1/healthcheck", c.healthcheck)
+	firstVersionAPI.GET("/healthcheck", c.healthcheck)
+	firstVersionAPI.GET("/*", c.getDBResult)
+	firstVersionAPI.POST("/*", c.getDBResult)
+	firstVersionAPI.PUT("/*", c.getDBResult)
+	firstVersionAPI.DELETE("/*", c.getDBResult)
 }
