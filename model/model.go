@@ -114,18 +114,15 @@ func (m *Model) ExecQueryByParams(params QueryParameters) (interface{}, error) {
 		allObjectsNames = append(allObjectsNames, object.Name)
 		allObjectsIDs = append(allObjectsIDs, object.ID)
 	}
-	var query string
-	if params.Body != "" {
-		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
-			params.Method + "(" + strings.Join(allObjectsIDs, ", ") + ", '" + params.Body + "')"
-	}
-	if params.Body == "" {
-		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
-			params.Method + "(" + strings.Join(allObjectsIDs, ", ") + ")"
-	}
-	if params.Method == common.MethodPost {
+	query := "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
+		params.Method + "(" + strings.Join(allObjectsIDs, ", ") + ")"
+	if params.Method == common.MethodPost || params.Method == common.MethodPut {
 		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
 			params.Method + "('" + params.Body + "')"
+	}
+	if params.Method == common.MethodPut {
+		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
+			params.Method + "(" + strings.Join(allObjectsIDs, ", ") + ", '" + params.Body + "')"
 	}
 	rows, err := m.db.Raw(query).Rows()
 	if err != nil {
