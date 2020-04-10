@@ -5,7 +5,6 @@ CONFIG_PATH=config/config.json
 up:
 	docker-compose up -d db
 	while true ; do docker-compose exec db pg_isready && break ; sleep 0.1; done
-	make generate_swagger_docs
 	go run main.go --config=$(CONFIG_PATH)
 
 # Apply new migrations (if exist)
@@ -28,10 +27,5 @@ recreate_db:
 psql:
 	docker-compose exec db psql -U crud_web_service crud_web_service
 
-# generates swagger documentation
-.PHONY: generate_swagger_docs
-generate_swagger_docs:
-	go get github.com/swaggo/swag/cmd/swag
-	swag init
 
 
