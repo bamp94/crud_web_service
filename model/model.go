@@ -1,33 +1,39 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
+	"crud_web_service/common"
 	"crud_web_service/config"
 
 	"github.com/GuiaBolso/darwin"
 	"github.com/gobuffalo/packr"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // Model is data tier of 3-layer architecture
 type Model struct {
-	db *gorm.DB
-
-	// Used for tracing during building sql query.
-	// Must be initialized separately for each query.
-	logTrace logrus.Fields
+	db     *gorm.DB
+	config config.Database
 }
 
-var (
-	errIDIsNotSpecified = errors.New("Идентификатор не задан")
-)
+// QueryParameters contains query parameters from endpoint
+type QueryParameters struct {
+	Objects []Object
+	Method  string
+	Body    string
+}
+
+// Object contains object from db table
+type Object struct {
+	Name string
+	ID   string
+}
 
 // New Model constructor
 func NewFromConfig(config config.Database) Model {
@@ -38,7 +44,7 @@ func NewFromConfig(config config.Database) Model {
 	if err := db.DB().Ping(); err != nil {
 		logrus.WithError(err).Fatal("can't ping connection with a database")
 	}
-	return Model{db: db}
+	return Model{db: db, config: config}
 }
 
 // CheckMigrations validates database condition
@@ -101,65 +107,65 @@ func (m *Model) Ping() error {
 	return m.db.DB().Ping()
 }
 
-func initLogTrace(trace logrus.Fields) logrus.Fields {
-	if trace == nil {
-		return make(logrus.Fields)
+// ExecQueryByParams executes query to function from database by parameters
+func (m *Model) ExecQueryByParams(params QueryParameters) (interface{}, error) {
+	var allObjectsNames, allObjectsIDs []string
+	for _, object := range params.Objects {
+		allObjectsNames = append(allObjectsNames, object.Name)
+		allObjectsIDs = append(allObjectsIDs, object.ID)
 	}
-	return trace
-}
+	var query string
+	if params.Body != "" {
+		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
+			params.Method + "(" + strings.Join(allObjectsIDs, ", ") + ", '" + params.Body + "')"
+	}
+	if params.Body == "" {
+		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
+			params.Method + "(" + strings.Join(allObjectsIDs, ", ") + ")"
+	}
+	if params.Method == common.MethodPost {
+		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
+			params.Method + "('" + params.Body + "')"
+	}
+	rows, err := m.db.Raw(query).Rows()
+	if err != nil {
+		logrus.WithError(err).WithField("params", params).Error("Can't get rows by query")
+		return nil, common.ErrInternal
+	}
 
-// Preload is gorm interface func
-func (m *Model) Preload(column string, conditions ...interface{}) *Model {
-	trace := initLogTrace(m.logTrace)
-	trace["preloadColumn-"+column] = column
-	trace["preloadConditions-"+column] = conditions
-	return &Model{db: m.db.Preload(column, conditions...), logTrace: trace}
-}
+	// Get the column names from the query
+	var columns []string
+	columns, err = rows.Columns()
+	if err != nil {
+		logrus.WithError(err).WithField("params", params).Error("Can't get get columns")
+		return nil, common.ErrInternal
+	}
 
-// Debug is gorm interface func
-func (m *Model) Debug() *Model {
-	return &Model{db: m.db.Debug(), logTrace: m.logTrace}
-}
-
-// Model is gorm interface func
-func (m *Model) Model(value interface{}) *Model {
-	trace := initLogTrace(m.logTrace)
-	trace["modelValueType"] = fmt.Sprintf("%T", value)
-	return &Model{db: m.db.Model(value), logTrace: trace}
-}
-
-// Select is gorm interface func
-func (m *Model) Select(query interface{}, args ...interface{}) *Model {
-	trace := initLogTrace(m.logTrace)
-	trace["selectQuery"] = query
-	trace["selectArgs"] = args
-	return &Model{db: m.db.Select(query, args...), logTrace: trace}
-}
-
-// Table is gorm interface func
-func (m *Model) Table(name string) *Model {
-	trace := initLogTrace(m.logTrace)
-	trace["tableName"] = name
-	return &Model{db: m.db.Table(name), logTrace: trace}
-}
-
-// Limit is gorm interface func
-func (m *Model) Limit(limit interface{}) *Model {
-	trace := initLogTrace(m.logTrace)
-	trace["limit"] = limit
-	return &Model{db: m.db.Limit(limit), logTrace: trace}
-}
-
-func (m *Model) Set(name string, value interface{}) *Model {
-	trace := initLogTrace(m.logTrace)
-	var i int
-	for {
-		if _, ok := trace["setName"+strconv.Itoa(i)]; !ok {
-			break
+	colNum := len(columns)
+	var results []interface{}
+	for rows.Next() {
+		r := make([]interface{}, colNum)
+		for i := range r {
+			r[i] = &r[i]
 		}
-		i++
+
+		err = rows.Scan(r...)
+		if err != nil {
+			logrus.WithError(err).WithField("params", params).Error("Can't scan rows")
+			return nil, common.ErrInternal
+		}
+
+		var row interface{}
+		for i := range r {
+			if err := json.Unmarshal(r[i].([]byte), &row); err != nil {
+				logrus.WithError(err).WithField("params", params).Error("Can't unmarshal row json")
+				return nil, common.ErrInternal
+			}
+			results = append(results, row)
+		}
 	}
-	trace["setName"+strconv.Itoa(i)] = name
-	trace["setValue"+strconv.Itoa(i)] = value
-	return &Model{db: m.db.Set(name, value), logTrace: trace}
+	if len(results) == 1 {
+		return results[0], nil
+	}
+	return results, nil
 }
