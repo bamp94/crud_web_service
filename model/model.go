@@ -116,7 +116,7 @@ func (m *Model) ExecQueryByParams(params QueryParameters) (interface{}, error) {
 	}
 	query := "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
 		params.Method + "(" + strings.Join(allObjectsIDs, ", ") + ")"
-	if params.Method == common.MethodPost || params.Method == common.MethodPut {
+	if params.Method == common.MethodPost {
 		query = "SELECT * FROM " + m.config.Schema + "." + strings.Join(allObjectsNames, "_") + "_" +
 			params.Method + "('" + params.Body + "')"
 	}
